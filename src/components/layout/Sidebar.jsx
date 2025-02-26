@@ -8,10 +8,13 @@ import {
   RiDiscordFill,
   RiRobot2Line,
   RiSettings4Line,
-  RiServerLine
+  RiServerLine,
+  RiMenuLine,
+  RiCloseLine
 } from 'react-icons/ri';
+import { useState } from 'react';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, toggleSidebar }) {
   const location = useLocation();
 
   const menuItems = [
@@ -40,7 +43,12 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-30 transition-transform duration-300 transform">
+    <aside className={`fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-30 transition-transform duration-300 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+      {/* Close Button */}
+      <button onClick={toggleSidebar} className="absolute top-4 right-4 md:hidden">
+        <RiCloseLine className="text-2xl" />
+      </button>
+
       {/* Logo Section */}
       <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
         <Link to="/" className="flex items-center space-x-2">

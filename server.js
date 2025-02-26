@@ -1,146 +1,66 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
-const port = 3001;
 
-// MongoDB connection URL
-const mongoUrl = 'mongodb+srv://chuyahmad:9n4Usa3itVF5B3vk@data-set.2u5t5.mongodb.net/?retryWrites=true&w=majority';
-let db;
-
-// Connect to MongoDB
-async function connectToMongo() {
-  try {
-    const client = await MongoClient.connect(mongoUrl);
-    db = client.db('flazu');
-    console.log('Connected to MongoDB');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-  }
-}
-
-connectToMongo();
-
-app.use(cors());
-app.use(express.json());
-
-// Setup Collection Endpoints
-app.get('/api/setup/:serverId', async (req, res) => {
-  try {
-    const setupc = db.collection('setup');
-    const setup = await setupc.findOne({ server_id: req.params.serverId });
-    res.json(setup);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
 });
 
-app.post('/api/setup', async (req, res) => {
-  try {
-    const { serverId, setupType, channelId } = req.body;
-    const setupc = db.collection('setup');
-    
-    // Delete old setup if exists
-    await setupc.deleteOne({ server_id: serverId });
-    
-    // Save new setup
-    await setupc.insertOne({
-      server_id: serverId,
-      setup_type: setupType,
-      channel_or_category_id: channelId
-    });
-    
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Security middleware
+app.use(helmet());
+app.use(limiter);
+
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://8lpph6-5173.csb.app'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  maxAge: 600 // Cache preflight requests for 10 minutes
+};
+
+app.use(cors(corsOptions));
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';");
+  next();
 });
 
-// Q&A Collection Endpoints
-app.get('/api/qa/:serverId', async (req, res) => {
-  try {
-    const dataset = db.collection('dataset');
-    const qa = await dataset.findOne({ server_id: req.params.serverId });
-    res.json(qa?.qa_data || {});
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Hide server information
+app.disable('x-powered-by');
+
+// API routes will be added here
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'healthy' });
 });
 
-app.post('/api/qa', async (req, res) => {
-  try {
-    const { serverId, question, answer } = req.body;
-    const dataset = db.collection('dataset');
-
-    // First, get the existing qa_data or initialize an empty object
-    const existingDoc = await dataset.findOne({ server_id: serverId }) || { qa_data: {} };
-    
-    // Update the qa_data with the new question/answer
-    existingDoc.qa_data[question] = answer;
-
-    // Use upsert to either update existing or create new document
-    await dataset.updateOne(
-      { server_id: serverId },
-      { 
-        $set: { 
-          server_id: serverId,
-          qa_data: existingDoc.qa_data 
-        }
-      },
-      { upsert: true }
-    );
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error adding QA:', error);
-    res.status(500).json({ error: error.message });
-  }
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    // Don't expose detailed error messages in production
+    ...(process.env.NODE_ENV === 'development' && { details: err.message })
+  });
 });
 
-app.delete('/api/qa/:serverId/:question', async (req, res) => {
-  try {
-    const { serverId, question } = req.params;
-    const dataset = db.collection('dataset');
-    
-    const faq = await dataset.findOne({ server_id: serverId });
-    if (faq && faq.qa_data) {
-      delete faq.qa_data[question];
-      await dataset.updateOne(
-        { server_id: serverId },
-        { $set: { qa_data: faq.qa_data } }
-      );
-    }
-    
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
 
-app.delete('/api/qa/bulk/:serverId', async (req, res) => {
-  try {
-    const { serverId } = req.params;
-    const { questions } = req.body;
-    const dataset = db.collection('dataset');
-    
-    const faq = await dataset.findOne({ server_id: serverId });
-    if (faq && faq.qa_data) {
-      questions.forEach(question => {
-        delete faq.qa_data[question];
-      });
-      await dataset.updateOne(
-        { server_id: serverId },
-        { $set: { qa_data: faq.qa_data } }
-      );
-    }
-    
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+module.exports = app;

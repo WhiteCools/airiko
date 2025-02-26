@@ -1,108 +1,99 @@
-const API_URL = 'http://api.flazu.my:3001/api';
+// Use relative path for API requests which will be handled by the proxy
+const API_BASE = '/api';
 
 // Setup Collection Functions
 export async function getSetupInfo(serverId) {
   try {
-    const response = await fetch(`${API_URL}/setup/${serverId}`);
-    if (!response.ok) throw new Error('Failed to get setup info');
-    return await response.json();
-  } catch (error) {
-    console.error('Error getting setup info:', error);
-    throw error;
-  }
-}
-
-export async function saveSetupInfo(serverId, setupType, channelId) {
-  try {
-    const response = await fetch(`${API_URL}/setup`, {
-      method: 'POST',
+    const response = await fetch(`${API_BASE}/setup/${serverId}`, {
+      credentials: 'include', // Include cookies for authentication
       headers: {
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        serverId,
-        setupType,
-        channelId
-      })
+      }
     });
-    if (!response.ok) throw new Error('Failed to save setup info');
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
     return await response.json();
   } catch (error) {
-    console.error('Error saving setup info:', error);
+    console.error('Error fetching setup info:', error.message);
     throw error;
   }
 }
 
-// Q&A Collection Functions
-export async function getQAData(serverId) {
+// QA Collection Functions
+export async function getQAList(serverId) {
   try {
-    const response = await fetch(`${API_URL}/qa/${serverId}`);
-    if (!response.ok) throw new Error('Failed to get QA data');
+    const response = await fetch(`${API_BASE}/qa/${serverId}`, {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
     return await response.json();
   } catch (error) {
-    console.error('Error getting QA data:', error);
+    console.error('Error fetching QA list:', error.message);
     throw error;
   }
 }
 
 export async function addQA(serverId, question, answer) {
   try {
-    const response = await fetch(`${API_URL}/qa`, {
+    const response = await fetch(`${API_BASE}/qa/${serverId}`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        serverId: String(serverId), // Convert to string to match MongoDB format
-        question,
-        answer
-      })
+      body: JSON.stringify({ question, answer }),
     });
-    if (!response.ok) throw new Error('Failed to add QA');
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
     return await response.json();
   } catch (error) {
-    console.error('Error adding QA:', error);
+    console.error('Error adding QA:', error.message);
     throw error;
   }
 }
 
-export async function removeQA(serverId, question) {
+export async function updateQA(serverId, qaId, question, answer) {
   try {
-    const response = await fetch(`${API_URL}/qa/${serverId}/${encodeURIComponent(question)}`, {
-      method: 'DELETE'
+    const response = await fetch(`${API_BASE}/qa/${serverId}/${qaId}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ question, answer }),
     });
-    if (!response.ok) throw new Error('Failed to remove QA');
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
     return await response.json();
   } catch (error) {
-    console.error('Error removing QA:', error);
+    console.error('Error updating QA:', error.message);
     throw error;
   }
 }
 
-export async function removeQABulk(serverId, questions) {
+export async function deleteQA(serverId, qaId) {
   try {
-    const response = await fetch(`${API_URL}/qa/bulk/${serverId}`, {
+    const response = await fetch(`${API_BASE}/qa/${serverId}/${qaId}`, {
       method: 'DELETE',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ questions })
+      }
     });
-    if (!response.ok) throw new Error('Failed to remove QAs');
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
     return await response.json();
   } catch (error) {
-    console.error('Error removing QAs:', error);
-    throw error;
-  }
-}
-
-export async function listQA(serverId) {
-  try {
-    const response = await fetch(`${API_URL}/qa/${serverId}`);
-    if (!response.ok) throw new Error('Failed to list QA');
-    return await response.json();
-  } catch (error) {
-    console.error('Error listing QA:', error);
+    console.error('Error deleting QA:', error.message);
     throw error;
   }
 }

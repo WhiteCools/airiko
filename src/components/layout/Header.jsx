@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { RiNotification3Line, RiMoonLine, RiSunLine, RiUserLine, RiLogoutBoxLine } from 'react-icons/ri';
+import { RiNotification3Line, RiMoonLine, RiSunLine, RiUserLine, RiLogoutBoxLine, RiMenuLine } from 'react-icons/ri';
 
-export default function Header() {
+export default function Header({ toggleSidebar }) {
   const { currentUser, logout } = useAuth();
   const { darkMode, toggleDarkMode } = useTheme();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -29,6 +29,9 @@ export default function Header() {
       <div className="flex items-center justify-between h-full px-4 lg:px-6">
         {/* Left side - Brand/Title */}
         <div className="flex items-center space-x-3">
+          <button onClick={toggleSidebar} className="lg:hidden p-2">
+            <RiMenuLine className="text-2xl" />
+          </button>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Flazu
           </h1>

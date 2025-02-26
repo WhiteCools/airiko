@@ -5,8 +5,8 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, si
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState({ email: 'testuser@example.com' }); // Mock user for testing
+  const [loading, setLoading] = useState(false); // Set loading to false for testing
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -34,7 +34,6 @@ export function AuthProvider({ children }) {
   };
 
   const resetPassword = async (email) => {
-    // Implement password reset functionality if needed
     console.log('Password reset email sent to:', email);
   };
 
